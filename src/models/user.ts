@@ -12,6 +12,11 @@ export interface User extends Document {
 
     otp?: string;
     otpExpiry?: Date;
+    otpAttempts?: number;
+    otpResendCount?: number;
+    otpLastSentAt?: Date;
+    resetPasswordToken?: string;
+    resetPasswordExpiry?: Date;
 
     // Profile fields
     phone?: string;
@@ -62,6 +67,24 @@ const UserSchema = new Schema<User>(
 
         otp: String,
         otpExpiry: Date,
+        otpAttempts: {
+            type: Number,
+            default: 0,
+        },
+
+        // Resend control 
+        otpResendCount: {
+            type: Number,
+            default: 0,
+        },
+
+        otpLastSentAt: {
+            type: Date,
+        },
+
+        resetPasswordToken: String,
+
+        resetPasswordExpiry: Date,
 
         // Profile (filled after login)
         phone: {

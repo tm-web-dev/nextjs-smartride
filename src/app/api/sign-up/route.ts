@@ -73,7 +73,7 @@ export async function POST(request: Request) {
             return ApiError.internal("Failed to send email").toResponse();
         }
 
-        return ApiResponse.ok(null, "OTP sent successfully").toResponse();
+        return ApiResponse.ok(undefined, "OTP sent successfully").toResponse();
 
     } catch (error) {
         console.error(error);

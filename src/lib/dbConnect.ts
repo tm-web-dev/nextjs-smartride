@@ -1,28 +1,44 @@
-import mongoose, { Connection } from "mongoose";
+import mongoose from "mongoose";
 
+const MONGODB_URI = process.env.MONGODB_URI || "";
 
-type ConnectionObject = {
-    isconnected?: number,
-
+if (!MONGODB_URI) {
+  throw new Error("Please define the MONGODB_URI");
 }
 
-const connection: ConnectionObject = {};
+interface MongooseGlobal {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
 
-async function dbConnect(): Promise<void>{
-    if (connection.isconnected){
-        console.log("Already connected to database");
-        return;
-    }
 
-    try {
-        const db = await mongoose.connect(process.env.MONGODB_URI || "", {});
+const globalWithMongoose = global as typeof globalThis & {
+  mongoose?: MongooseGlobal;
+};
 
-        connection.isconnected = db.connections[0].readyState
-    } catch (error) {
-        console.error("Error connecting to database", error);
-        process.exit(1);
-    }   
+if (!globalWithMongoose.mongoose) {
+  globalWithMongoose.mongoose = {
+    conn: null,
+    promise: null,
+  };
+}
 
+async function dbConnect(): Promise<typeof mongoose> {
+  if (globalWithMongoose.mongoose!.conn) {
+    console.log("Already connected");
+    return globalWithMongoose.mongoose!.conn!;
+  }
+
+  if (!globalWithMongoose.mongoose!.promise) {
+    globalWithMongoose.mongoose!.promise = mongoose.connect(MONGODB_URI);
+  }
+
+  globalWithMongoose.mongoose!.conn =
+    await globalWithMongoose.mongoose!.promise;
+
+  console.log("New DB connection");
+
+  return globalWithMongoose.mongoose!.conn!;
 }
 
 export default dbConnect;

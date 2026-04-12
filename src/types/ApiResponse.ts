@@ -15,23 +15,28 @@ export class ApiResponse<T> implements IApiResponse<T> {
     public message: string,
     public data?: T
   ) {}
-toResponse() {
+
+  toResponse() {
     return NextResponse.json(
       {
         success: this.success,
         message: this.message,
-        errors: this.data,
+        ...(this.data !== undefined && { data: this.data }),
       },
-      { status: this.statusCode } // ✅ uses internal value
+      { status: this.statusCode }
     );
   }
-  // Standard 200 OK
-  static ok<T>(data: T, message: string = "Success"): ApiResponse<T> {
+
+  // 200 OK
+  static ok<T>(data?: T, message: string = "Success"): ApiResponse<T> {
     return new ApiResponse(200, message, data);
   }
 
-  // Standard 201 Created (Perfect for OTPs and user registration)
-  static created<T>(data: T, message: string = "Resource created successfully"): ApiResponse<T> {
+  // 201 Created
+  static created<T>(
+    data?: T,
+    message: string = "Resource created successfully"
+  ): ApiResponse<T> {
     return new ApiResponse(201, message, data);
   }
 }

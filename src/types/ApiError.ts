@@ -4,7 +4,8 @@ export interface IApiError {
   success: boolean;
   message: string;
   statusCode: number;
-  errors?: any[]; // For things like multiple field validation errors
+  error?: string; // 👈 machine-readable code
+  errors?: any[];
 }
 
 export class ApiError implements IApiError {
@@ -13,51 +14,63 @@ export class ApiError implements IApiError {
   constructor(
     public statusCode: number,
     public message: string,
-    public errors: any[] = []
+    public error?: string, // 👈 NEW
+    public errors?: any[]
   ) {}
+
   toResponse() {
     return NextResponse.json(
       {
         success: this.success,
         message: this.message,
-        errors: this.errors,
+        ...(this.error && { error: this.error }),   // 👈 only include if exists
+        ...(this.errors?.length ? { errors: this.errors } : {}), // 👈 only if not empty
       },
-      { status: this.statusCode } // ✅ uses internal value
+      { status: this.statusCode }
     );
   }
-  // 400 - Validation errors or missing fields
-  static badRequest(message: string = "Bad Request", errors: any[] = []): ApiError {
-    return new ApiError(400, message, errors);
+
+  // 400
+  static badRequest(
+    message: string = "Bad Request",
+    errors: any[] = []
+  ): ApiError {
+    return new ApiError(400, message, "BAD_REQUEST", errors);
   }
 
-  // 401 - Invalid OTP or missing token
+  // 401
   static unauthorized(message: string = "Unauthorized access"): ApiError {
-    return new ApiError(401, message);
+    return new ApiError(401, message, "UNAUTHORIZED");
   }
 
-  // 403 - User is logged in but doesn't have permission (e.g. not an admin)
+  // 403
   static forbidden(message: string = "Permission denied"): ApiError {
-    return new ApiError(403, message);
+    return new ApiError(403, message, "FORBIDDEN");
   }
 
-  // 404 - Course or User not found
-  static notFound(message: string = "The requested resource was not found"): ApiError {
-    return new ApiError(404, message);
+  // 404
+  static notFound(message: string = "Resource not found"): ApiError {
+    return new ApiError(404, message, "NOT_FOUND");
   }
 
-  // 429 - Too many requests (Stop users from spamming OTPs)
-  static tooManyRequests(message: string = "Too many attempts. Please try again later."): ApiError {
-    return new ApiError(429, message);
+  // 409
+  static conflict(message: string = "Already exists"): ApiError {
+    return new ApiError(409, message, "CONFLICT");
   }
 
-  // 500 - Database or Server crash
-  static internal(message: string = "Internal Server Error", err: any = null): ApiError {
-    const errorDetails = err instanceof Error ? [err.message] : [];
-    return new ApiError(500, message, errorDetails);
+  // 429
+  static tooManyRequests(
+    message: string = "Too many attempts. Please try again later."
+  ): ApiError {
+    return new ApiError(429, message, "TOO_MANY_REQUESTS");
   }
 
-   // 409 - Already exist
-  static conflict(message: string = "Already exist"): ApiError {
-    return new ApiError(409, message);
+  // 500
+  static internal(
+    message: string = "Internal Server Error",
+    err: any = null
+  ): ApiError {
+    const errorDetails = err instanceof Error ? [err.message] : undefined;
+    return new ApiError(500, message, "INTERNAL_ERROR", errorDetails);
   }
 }

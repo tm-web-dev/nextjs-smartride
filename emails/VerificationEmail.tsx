@@ -34,7 +34,7 @@ const verificationEmail = ({ name, otp }: OtpEmailProps) => (
           </Heading>
 
           <Text className="text-black text-[14px] leading-[24px] text-center">
-            Hello {name}, your one-time verification code is below:
+            Hello {name}, please use the following OTP to verify your account:
           </Text>
 
           <Section className="bg-slate-100 rounded-md my-[32px] py-[12px] px-[10px]">

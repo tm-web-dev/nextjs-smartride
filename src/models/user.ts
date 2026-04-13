@@ -15,6 +15,8 @@ export interface User extends Document {
     otpAttempts?: number;
     otpResendCount?: number;
     otpLastSentAt?: Date;
+    verifyToken?: string;
+    verifyTokenExpiry?: Date;
     resetPasswordToken?: string;
     resetPasswordExpiry?: Date;
 
@@ -81,6 +83,8 @@ const UserSchema = new Schema<User>(
         otpLastSentAt: {
             type: Date,
         },
+        verifyToken: String,
+        verifyTokenExpiry: Date,
 
         resetPasswordToken: String,
 

@@ -73,7 +73,6 @@ export async function POST(request: Request) {
     await user.save();
 
     return ApiResponse.created(
-      user,
       "Account verified successfully"
     ).toResponse();
 

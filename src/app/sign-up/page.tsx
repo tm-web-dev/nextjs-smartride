@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import * as z from "zod";
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 import { toast } from "sonner";
 import { useState } from "react";
 import Link from "next/link";
@@ -22,6 +22,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+
+
+type ApiErrorResponse = {
+  message: string;
+};
 
 export default function Page() {
   const router = useRouter();
@@ -47,31 +52,40 @@ export default function Page() {
         position: "bottom-right",
       });
 
-      router.replace(`/verify-email/${response.data.token}`);
-    } catch (error) {
-  if (axios.isAxiosError<ApiErrorResponse>(error)) {
-    const message = error.response?.data?.message;
-    console.error("Signup Error:", message);
+      const token = response.data?.data?.token;
 
-    toast.error("Signup Error", {
-      description: message ?? "Something went wrong",
-    });
-  }
-}
-     finally {
+      if (!token) {
+        toast.error("Token not received");
+        return;
+      }
+
+      router.replace(`/verify-email/${token}`);
+    } catch (error) {
+      if (axios.isAxiosError<ApiErrorResponse>(error)) {
+        const message = error.response?.data?.message;
+
+        toast.error("Signup Error", {
+          description: message ?? "Something went wrong",
+        });
+      }
+    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded shadow-md w-full space-y-6 max-w-md">
+    <div className="relative min-h-screen flex items-center justify-center bg-background text-foreground">
+      
+      
 
+      <div className="bg-card border border-border p-8 rounded-xl shadow-md w-full space-y-6 max-w-md">
         <h2 className="text-2xl font-bold text-center">Sign Up</h2>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="name"
@@ -79,7 +93,10 @@ export default function Page() {
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your full name" {...field} />
+                    <Input
+                      placeholder="Enter your full name"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -93,7 +110,11 @@ export default function Page() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your email" {...field} />
+                    <Input
+                      type="email"
+                      placeholder="Enter your email"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -107,29 +128,40 @@ export default function Page() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Choose your password" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="Choose your password"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (<>
-              <Loader2 className="animate-spin mr-2" size={16} /> Submitting...
-              </>) : "Sign Up"}
+            <Button className="w-full" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin mr-2" size={16} />
+                  Submitting...
+                </>
+              ) : (
+                "Sign Up"
+              )}
             </Button>
-
           </form>
         </Form>
-        <div>
-            <p className="text-sm text-center">
-              Already have an account? 
-              <Link href="/sign-in" className="text-blue-500 hover:underline">
-                Sign In
-              </Link>
-            </p>
 
+        <div>
+          <p className="text-sm text-center text-muted-foreground">
+            Already have an account?{" "}
+            <Link
+              href="/sign-in"
+              className="text-primary hover:underline"
+            >
+              Sign In
+            </Link>
+          </p>
         </div>
       </div>
     </div>

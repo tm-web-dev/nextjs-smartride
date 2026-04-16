@@ -54,8 +54,8 @@ export class ApiError implements IApiError {
   }
 
   // 409
-  static conflict(message: string = "Already exists"): ApiError {
-    return new ApiError(409, message, "CONFLICT");
+  static conflict(data: any, message: string = "Already exists"): ApiError {
+    return new ApiError(409, message, "CONFLICT", [data]);
   }
 
   // 429

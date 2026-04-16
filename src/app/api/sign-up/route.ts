@@ -5,6 +5,7 @@ import { ApiError } from "@/types/ApiError";
 import { hashPassword } from "@/lib/bcrypt";
 import { createOTP } from "@/lib/otp";
 import { ApiResponse } from "@/types/ApiResponse";
+import crypto from "crypto";
 
 export async function POST(request: Request) {
     await dbConnect();
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
         const existingUser = await Usermodel.findOne({ email });
 
         if (existingUser?.isVerified) {
-            return ApiError.conflict(
+            return ApiError.conflict(existingUser.isVerified,
                 "User already exists. Please log in."
             ).toResponse();
         }
@@ -41,6 +42,13 @@ export async function POST(request: Request) {
 
         const hashedPassword = await hashPassword(password);
         const { otp, hashedOTP, otpExpiry } = createOTP();
+        const rawToken = crypto.randomBytes(32).toString("hex");
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(rawToken)
+            .digest("hex");
+        const verifyTokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
 
         if (existingUser) {
             existingUser.name = name;
@@ -49,6 +57,8 @@ export async function POST(request: Request) {
             existingUser.otpExpiry = otpExpiry;
             existingUser.otpResendCount = (existingUser.otpResendCount || 0) + 1;
             existingUser.otpLastSentAt = now;
+            existingUser.verifyToken = hashedToken;
+            existingUser.verifyTokenExpiry = verifyTokenExpiry;
 
             await existingUser.save();
         } else {
@@ -61,6 +71,8 @@ export async function POST(request: Request) {
                 otpResendCount: 1,
                 otpLastSentAt: now,
                 isVerified: false,
+                verifyToken: hashedToken,
+                verifyTokenExpiry: verifyTokenExpiry,
                 role: "user",
             });
 
@@ -73,7 +85,8 @@ export async function POST(request: Request) {
             return ApiError.internal("Failed to send email").toResponse();
         }
 
-        return ApiResponse.ok(undefined, "OTP sent successfully").toResponse();
+        return ApiResponse.ok({ token: rawToken }, "OTP sent successfully").toResponse();
+        
 
     } catch (error) {
         console.error(error);

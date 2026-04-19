@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import Navbar from "@/components/navbar";
+import Footer from "@/components/footer";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -22,14 +24,9 @@ export default function RootLayout({
       className={cn("font-sans", inter.variable)}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        
         <ThemeProvider>
           <AuthProvider>
-
-            {/* ✅ Global Toggle */}
-            <div className="fixed top-4 right-4 z-50">
-              <ThemeToggle />
-            </div>
+            <Navbar />
 
             {children}
 
@@ -41,10 +38,9 @@ export default function RootLayout({
                 className: "rounded-xl border shadow-lg",
               }}
             />
-
+            <Footer />
           </AuthProvider>
         </ThemeProvider>
-
       </body>
     </html>
   );

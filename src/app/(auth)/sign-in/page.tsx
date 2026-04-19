@@ -41,28 +41,36 @@ export default function Page() {
   });
 
   const onSubmit = async (data: z.infer<typeof loginSchema>) => {
+  setIsSubmitting(true);
+
+  try {
     const result = await signIn("credentials", {
       email: data.email,
       password: data.password,
+      loginType: "user",
       redirect: false,
-    })
+    });
+
     if (result?.error) {
       toast.error("Login failed", {
         description: result.error,
         position: "bottom-right",
       });
-    } 
+      return; 
+    }
 
-      toast.success("Login successful", {
-        position: "bottom-right",
-      });
-      router.push("/dashboard");
+    toast.success("Login successful", {
+      position: "bottom-right",
+    });
 
-      if (result?.url){
-        router.replace('/dashboard');
-      }
-    
+    router.replace("/dashboard"); 
+
+  } catch (error) {
+    toast.error("Something went wrong");
+  } finally {
+    setIsSubmitting(false);
   }
+};
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-background text-foreground">

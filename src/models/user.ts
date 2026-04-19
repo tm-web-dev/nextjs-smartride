@@ -22,7 +22,6 @@ export interface User extends Document {
 
     // Profile fields
     phone?: string;
-    aadharNumber?: string;
     address?: string;
     pinCode?: string;
     district?: string;
@@ -96,12 +95,6 @@ const UserSchema = new Schema<User>(
             trim: true,
             length: 10,
 
-        },
-
-        aadharNumber: {
-            type: String,
-            trim: true,
-            length: 12,
         },
 
         address: {

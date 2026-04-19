@@ -3,81 +3,86 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { comparePassword } from "@/lib/bcrypt";
 import dbConnect from "@/lib/dbConnect";
 import Usermodel from "@/models/user";
+import { Role } from "@/types/role";
 
 export const authOptions: NextAuthOptions = {
-    providers: [
-        CredentialsProvider({
-            name: "Credentials",
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
 
-            credentials: {
-                email: { label: "Email", type: "email" },
-                password: { label: "Password", type: "password" },
-            },
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+        loginType: { label: "Login Type", type: "text" }, 
+      },
 
-            async authorize(credentials) {
-                if (!credentials) return null;
+      async authorize(credentials) {
+  if (!credentials) return null;
 
-                await dbConnect();
+  await dbConnect();
 
-                try {
-                    const user = await Usermodel.findOne({
-                        email: credentials.email,
-                    });
+  const user = await Usermodel.findOne({
+    email: credentials.email,
+  });
 
+  if (!user) {
+    throw new Error("User not found");
+  }
 
-                    if (!user) return null;
+  if (!user.isVerified) {
+    throw new Error("EMAIL_NOT_VERIFIED"); // ✅ IMPORTANT
+  }
 
+  const isPasswordCorrect = await comparePassword(
+    credentials.password,
+    user.password
+  );
 
-                    if (!user.isVerified) return null;
+  if (!isPasswordCorrect) {
+    throw new Error("Invalid credentials");
+  }
 
-
-                    const isPasswordCorrect = await comparePassword(
-                        credentials.password,
-                        user.password
-                    );
-
-                    if (!isPasswordCorrect) return null;
-
-
-                    return {
-                        id: user._id.toString(),
-                        email: user.email,
-                        isVerified: user.isVerified,
-                    };
-
-                } catch (error) {
-                    console.error("Auth error:", error);
-                    return null;
-                }
-            },
-        }),
-    ],
-    callbacks: {
-        async jwt({ token, user }) {
-
-            if (user) {
-                token.id = user.id?.toString(),
-                    token.email = user.email,
-                    token.isVerified = user.isVerified
-            }
-            return token
-        },
-        async session({ session, token }) {
-            if (token) {
-                session.user.id = token.id,
-                    session.user.email = token.email,
-                    session.user.isVerified = token.isVerified
-            }
-            return session
-        },
-
-    },
-    pages: {
-        signIn: "/sign-in"
-    },
-
-    session: {
-        strategy: "jwt",
-    },
-    secret: process.env.NEXTAUTH_SECRET,
+  return {
+    id: user._id.toString(),
+    email: user.email,
+    isVerified: user.isVerified,
+    role: user.role as Role,
+  };
 }
+    }),
+  ],
+
+  callbacks: {
+    async jwt({ token, user }) {
+      // Runs on login
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.isVerified = user.isVerified;
+        token.role = user.role as Role;
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      // Runs on every request
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.isVerified = token.isVerified as boolean;
+        session.user.role = token.role as Role;
+      }
+      return session;
+    },
+  },
+
+  pages: {
+    signIn: "/sign-in",
+  },
+
+  session: {
+    strategy: "jwt",
+  },
+
+  secret: process.env.NEXTAUTH_SECRET,
+};

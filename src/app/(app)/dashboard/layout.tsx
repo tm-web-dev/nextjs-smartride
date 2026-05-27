@@ -1,29 +1,46 @@
 import Sidebar from "@/components/dashboard/sidebar";
 
-export default function DashboardLayout({
+import { getServerSession } from "next-auth";
+
+import { redirect } from "next/navigation";
+
+import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session =
+    await getServerSession(
+      authOptions
+    );
+
+  if (!session) {
+    redirect("/sign-in");
+  }
+
+  if (
+    session.user.role !== "user"
+  ) {
+    redirect("/unauthorized");
+  }
+
   return (
-    // min-h-screen here ensures the whole app is at least viewport height
-    <div className="flex h-auto min-h-screen min-w-screen bg-background text-foreground">
-      
-      <aside className="w-[40%] min-w-125 px-6 border-r">
+    <div className="min-h-screen flex bg-background text-foreground">
+
+      {/* Sidebar */}
+      <aside className="w-72 border-r bg-card sticky top-0 h-screen">
         <Sidebar />
       </aside>
 
-      {/* Main Area: flex-1 makes this fill all remaining width */}
-      <div className=" flex-col align-items-center bg-card justify-center flex-1 w-full">
-        
-        {/* main: flex-1 here makes it fill the remaining height for vertical centering */}
-        <main className="flex-1 flex justify-center items-center px-6">
-          <div className="w-full flex flex-col items-center justify-center">
-            {children}
-          </div>
-        </main>
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-6xl mx-auto p-6">
+          {children}
+        </div>
+      </main>
 
-      </div>
     </div>
   );
 }

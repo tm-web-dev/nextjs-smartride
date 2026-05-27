@@ -1,8 +1,13 @@
 import { NextAuthOptions } from "next-auth";
+
 import CredentialsProvider from "next-auth/providers/credentials";
+
 import { comparePassword } from "@/lib/bcrypt";
+
 import dbConnect from "@/lib/dbConnect";
+
 import Usermodel from "@/models/user";
+
 import { Role } from "@/types/role";
 
 export const authOptions: NextAuthOptions = {
@@ -11,67 +16,122 @@ export const authOptions: NextAuthOptions = {
       name: "Credentials",
 
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-        loginType: { label: "Login Type", type: "text" }, 
+        email: {
+          label: "Email",
+          type: "email",
+        },
+
+        password: {
+          label: "Password",
+          type: "password",
+        },
       },
 
       async authorize(credentials) {
-  if (!credentials) return null;
+        if (!credentials) {
+          throw new Error(
+            "Missing credentials"
+          );
+        }
 
-  await dbConnect();
+        await dbConnect();
 
-  const user = await Usermodel.findOne({
-    email: credentials.email,
-  });
+        // Normalize email
+        const email =
+          credentials.email
+            .toLowerCase()
+            .trim();
 
-  if (!user) {
-    throw new Error("User not found");
-  }
+        // Find user
+        const user =
+          await Usermodel.findOne({
+            email,
+          });
 
-  if (!user.isVerified) {
-    throw new Error("EMAIL_NOT_VERIFIED"); // ✅ IMPORTANT
-  }
+        if (!user) {
+          throw new Error(
+            "User not found"
+          );
+        }
 
-  const isPasswordCorrect = await comparePassword(
-    credentials.password,
-    user.password
-  );
+        // Check email verification
+        if (!user.isVerified) {
+          throw new Error(
+            "EMAIL_NOT_VERIFIED"
+          );
+        }
 
-  if (!isPasswordCorrect) {
-    throw new Error("Invalid credentials");
-  }
+        // Compare password
+        const isPasswordCorrect =
+          await comparePassword(
+            credentials.password,
+            user.password
+          );
 
-  return {
-    id: user._id.toString(),
-    email: user.email,
-    isVerified: user.isVerified,
-    role: user.role as Role,
-  };
-}
+        if (!isPasswordCorrect) {
+          throw new Error(
+            "Invalid credentials"
+          );
+        }
+
+        // Return user object
+        return {
+          id: user._id.toString(),
+
+          name: user.name,
+
+          email: user.email,
+
+          role: user.role as Role,
+
+          isVerified:
+            user.isVerified,
+        };
+      },
     }),
   ],
 
   callbacks: {
+    // JWT callback
     async jwt({ token, user }) {
-      // Runs on login
       if (user) {
         token.id = user.id;
+
+        token.name = user.name;
+
         token.email = user.email;
-        token.isVerified = user.isVerified;
-        token.role = user.role as Role;
+
+        token.role = user.role;
+
+        token.isVerified =
+          user.isVerified;
       }
+
       return token;
     },
 
-    async session({ session, token }) {
-      // Runs on every request
+    // Session callback
+    async session({
+      session,
+      token,
+    }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.email = token.email as string;
-        session.user.isVerified = token.isVerified as boolean;
-        session.user.role = token.role as Role;
+        session.user.id =
+          token.id as string;
+
+        session.user.name =
+          token.name as string;
+
+        session.user.email =
+          token.email as string;
+
+        session.user.role =
+          token.role as Role;
+
+        session.user.isVerified =
+          token.isVerified as boolean;
       }
+
       return session;
     },
   },
@@ -84,5 +144,6 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
 
-  secret: process.env.NEXTAUTH_SECRET,
+  secret:
+    process.env.NEXTAUTH_SECRET,
 };

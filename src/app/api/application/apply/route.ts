@@ -1,114 +1,190 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/dbConnect";
-import ApplicationModel from "@/models/application";
+
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/options";
 
+import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 
-function generateApplicationNumber() {
-    return Math.floor(1000000000 + Math.random() * 9000000000).toString();
-}
+import dbConnect from "@/lib/dbConnect";
 
-export async function POST(req: Request) {
-    await dbConnect();
+import ApplicationModel from "@/models/application";
 
-    try {
-        const session = await getServerSession(authOptions);
+import { applicationSchema } from "@/schema/applicationSchema";
 
+export async function POST(
+  req: Request
+) {
+  await dbConnect();
 
-        if (!session || !session.user) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            );
-        }
+  try {
+    // Session check
+    const session =
+      await getServerSession(
+        authOptions
+      );
 
-        const userId = session.user.id;
-
-        const body = await req.json();
-        const {
-            phone,
-            address,
-            district,
-            pinCode,
-            gender,
-            dateOfBirth,
-            aadharNumber,
-            photoUrl,
-            signatureUrl,
-            aadharDocumentUrl,
-        } = body;
-
-        if (!phone || !address || !district || !pinCode) {
-            return NextResponse.json(
-                { message: "Missing required fields" },
-                { status: 400 }
-            );
-        }
-
-
-        const existing = await ApplicationModel.findOne({ userId });
-
-        if (existing) {
-            return NextResponse.json(
-                { message: "Application already submitted" },
-                { status: 409 }
-            );
-        }
-
-   
-        let applicationNumber = generateApplicationNumber();
-
-        // ensure uniqueness
-        let exists = await ApplicationModel.findOne({ applicationNumber });
-
-        while (exists) {
-            applicationNumber = generateApplicationNumber();
-            exists = await ApplicationModel.findOne({ applicationNumber });
-        }
-
-
-        const fullName = session.user.name;
-        const email = session.user.email;
-
-
-        const application = await ApplicationModel.create({
-            userId,
-            applicationNumber,
-
-            fullName,
-            email,
-
-            phone,
-            address,
-            district,
-            pinCode,
-
-            gender,
-            dateOfBirth,
-            aadharNumber,
-
-            photoUrl,
-            signatureUrl,
-            aadharDocumentUrl,
-
-            status: "pending",
-            isRenewal: false,
-        });
-
-        return NextResponse.json(
-            {
-                message: "Application submitted successfully",
-                application,
-            },
-            { status: 201 }
-        );
-    } catch (error: any) {
-        console.error("APPLICATION_ERROR:", error);
-
-        return NextResponse.json(
-            { message: "Internal Server Error" },
-            { status: 500 }
-        );
+    if (!session) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Unauthorized",
+        },
+        { status: 401 }
+      );
     }
+
+    // Only users can apply
+    if (
+      session.user.role !==
+      "user"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Only users can apply",
+        },
+        { status: 403 }
+      );
+    }
+
+    const body =
+      await req.json();
+
+    // Validate request
+    const validation =
+      applicationSchema.safeParse(
+        body
+      );
+
+    if (
+      !validation.success
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          errors:
+            validation.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const {
+      phone,
+      address,
+      district,
+      pinCode,
+      gender,
+      dateOfBirth,
+      aadharNumber,
+      photoUrl,
+      signatureUrl,
+      aadharDocumentUrl,
+    } = validation.data;
+
+    // Prevent duplicate active application
+    const existingApplication =
+      await ApplicationModel.findOne(
+        {
+          userId:
+            session.user.id,
+
+          status: {
+            $in: [
+              "pending",
+              "approved",
+              "dispatched",
+            ],
+          },
+        }
+      );
+
+    if (
+      existingApplication
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "You already have an active application",
+        },
+        { status: 409 }
+      );
+    }
+
+    // Generate application number
+    const count =
+      await ApplicationModel.countDocuments();
+
+    const applicationNumber = `SR-${new Date().getFullYear()}-${String(
+      count + 1
+    ).padStart(4, "0")}`;
+
+    // Create application
+    const application =
+      await ApplicationModel.create(
+        {
+          userId:
+            session.user.id,
+
+          applicationNumber,
+
+          fullName:
+            session.user.name,
+
+          email:
+            session.user.email,
+
+          phone,
+          address,
+          district,
+          pinCode,
+
+          gender,
+
+          dateOfBirth,
+
+          aadharNumber,
+
+          photoUrl,
+
+          signatureUrl,
+
+          aadharDocumentUrl,
+
+          status:
+            "pending",
+
+          isRenewal:
+            false,
+        }
+      );
+
+    return NextResponse.json(
+      {
+        success: true,
+
+        message:
+          "Application submitted successfully",
+
+        application,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error(
+      "APPLICATION_ERROR:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          "Internal server error",
+      },
+      { status: 500 }
+    );
+  }
 }

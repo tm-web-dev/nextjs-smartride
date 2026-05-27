@@ -49,39 +49,116 @@ export default function DashboardPage() {
     );
   }
 
-  return (
- 
-  <div className="flex flex-col w-full py-6 items-center space-y-10">
-    {/* Card Section: Added max-w-md to stop it from filling the whole screen */}
+return (
+  <div className="space-y-6">
+
+    {/* Heading */}
+    <div>
+      <h1 className="text-3xl font-bold">
+        Dashboard
+      </h1>
+
+      <p className="text-muted-foreground mt-1">
+        Manage your SmartRide concession card
+      </p>
+    </div>
+
     {!application ? (
-      <div className="w-full max-w-md border rounded-xl p-6 bg-card shadow-sm flex flex-col items-center">
-        <FileText className="mb-4 text-muted-foreground" size={40} />
-        <h2 className="text-lg font-semibold text-center">No Application Found</h2>
-        <p className="text-sm text-muted-foreground mt-2 mb-6 text-center">
-          Create your application to get started
-        </p>
-        <Link href="/dashboard/application/apply" className="w-full">
-          <Button className="w-full flex gap-2 justify-center mt-4">
-            <PlusCircle size={18} />
-            Apply Now
-          </Button>
-        </Link>
+      <div className="border rounded-2xl p-8 bg-card shadow-sm">
+
+        <div className="flex flex-col items-center text-center">
+
+          <FileText
+            size={48}
+            className="mb-4 text-muted-foreground"
+          />
+
+          <h2 className="text-xl font-semibold">
+            No Application Found
+          </h2>
+
+          <p className="text-muted-foreground mt-2 mb-6 max-w-md">
+            Start your concession card application process.
+          </p>
+
+          <Link href="/dashboard/application/apply">
+            <Button className="flex gap-2">
+              <PlusCircle size={18} />
+              Apply Now
+            </Button>
+          </Link>
+
+        </div>
       </div>
     ) : (
-      /* Applied max-w-md here as well */
-      <div className="w-full max-w-md border rounded-xl p-6 bg-card shadow-sm text-left space-y-4">
-        <h3 className="text-lg font-semibold">Current Application</h3>
-        <div className="text-sm text-gray-600">
-          Status:{" "}
-          <span className={`font-medium ${getStatusColor(application.status)}`}>
-            {application.status || "Pending"}
-          </span>
+      <div className="grid md:grid-cols-2 gap-6">
+
+        {/* Application Card */}
+        <div className="border rounded-2xl p-6 bg-card shadow-sm space-y-4">
+
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">
+              Current Application
+            </h2>
+
+            <span
+              className={`text-sm font-medium ${getStatusColor(
+                application.status
+              )}`}
+            >
+              {application.status}
+            </span>
+          </div>
+
+          <div className="space-y-2 text-sm">
+
+            <p>
+              <span className="font-medium">
+                Application No:
+              </span>{" "}
+              {
+                application.applicationNumber
+              }
+            </p>
+
+            <p>
+              <span className="font-medium">
+                Submitted:
+              </span>{" "}
+              {new Date(
+                application.createdAt
+              ).toLocaleDateString()}
+            </p>
+
+            {application.validTill && (
+              <p>
+                <span className="font-medium">
+                  Valid Till:
+                </span>{" "}
+                {new Date(
+                  application.validTill
+                ).toLocaleDateString()}
+              </p>
+            )}
+
+          </div>
+
+          <div className="pt-4 flex gap-3">
+
+            <Button>
+              Download PDF
+            </Button>
+
+            <Button
+              variant="outline"
+            >
+              Track Status
+            </Button>
+
+          </div>
+
         </div>
-        {application.createdAt && (
-          <p className="text-xs text-gray-400">
-            Submitted on: {new Date(application.createdAt).toLocaleDateString()}
-          </p>
-        )}
+
       </div>
     )}
   </div>

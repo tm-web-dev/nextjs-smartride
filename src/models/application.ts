@@ -4,7 +4,8 @@ export type ApplicationStatus =
     | "pending"
     | "approved"
     | "rejected"
-    | "expired";
+    | "dispatched"
+    | "delivered";
 
 export interface Application extends Document {
     userId: mongoose.Types.ObjectId;
@@ -129,14 +130,14 @@ const ApplicationSchema = new Schema<Application>(
         // Status
         status: {
             type: String,
-            enum: ["pending", "approved", "rejected", "expired"],
+            enum: ["pending", "approved", "rejected", "dispatched", "delivered"],
             default: "pending",
             index: true,
         },
 
         // Validity (after approval)
         validFrom: Date,
-        validTill: Date,
+        validTill: Date,    
 
         // Renewal tracking
         isRenewal: {
